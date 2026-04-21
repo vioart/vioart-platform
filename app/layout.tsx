@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
-import Footer from "@/components/layout/footer";
-import Navbar from "@/components/layout/navbar";
-
 
 const font = Space_Grotesk({
   subsets: ["latin"],
@@ -24,21 +21,9 @@ export default function RootLayout({
     <html
       lang="id"
       className={`${font.className}`}
+      suppressHydrationWarning
     >
-      <body className="min-h-screen flex flex-col antialiased selection:bg-blue-500/30">
-        
-        {/* Navbar */}
-        <Navbar />
-
-        {/* Main Content */}
-        <main className="flex-1 w-full pt-20">
-          {children}
-        </main>
-
-        {/* Footer */}
-        <Footer />
-
-      </body>
+       <body suppressHydrationWarning>{children}</body>
     </html>
   );
 }

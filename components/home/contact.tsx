@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 
 export default function Contact() {
   return (
-    <section className="relative py-16 md:py-32 text-center overflow-hidden">
+    <section id="contact" className="relative py-16 md:py-32 text-center overflow-hidden">
       {/* BACKGROUND GLOW */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute left-50 top-0 w-125 h-125 bg-blue-500/10 blur-[120px]" />
@@ -41,7 +41,7 @@ export default function Contact() {
           <div className="flex flex-wrap justify-center gap-3 md:gap-5 mt-8 md:mt-12 max-w-md mx-auto">
             {/* EMAIL */}
             <a
-              href="mailto:emailkamu@gmail.com"
+              href="mailto:vioartdeveoper@gmail.com"
               className="group relative px-5 py-2.5 md:px-6 md:py-3 gap-2 md:gap-3 text-sm rounded-full border border-white/10 bg-white/5 backdrop-blur-md flex items-center justify-center min-w-[120px] text-gray-300 hover:text-white transition hover:scale-[1.05]"
             >
               <Mail className="w-4 h-4 md:w-4 md:h-4 text-blue-400" />
@@ -51,7 +51,7 @@ export default function Contact() {
 
             {/* LINKEDIN */}
             <Link
-              href="https://linkedin.com/in/username"
+              href="https://linkedin.com/in/vioarvendha"
               target="_blank"
               className="group relative px-5 py-2.5 md:px-6 md:py-3 gap-2 md:gap-3 text-sm rounded-full border border-white/10 bg-white/5 backdrop-blur-md flex items-center justify-center min-w-[120px] text-gray-300 hover:text-white transition hover:scale-[1.05]"
             >
@@ -62,7 +62,7 @@ export default function Contact() {
 
             {/* GITHUB */}
             <Link
-              href="https://github.com/username"
+              href="https://github.com/vioart"
               target="_blank"
               className="group relative px-5 py-2.5 md:px-6 md:py-3 gap-2 md:gap-3 text-sm rounded-full border border-white/10 bg-white/5 backdrop-blur-md flex items-center justify-center min-w-[120px] text-gray-300 hover:text-white transition hover:scale-[1.05]"
             >

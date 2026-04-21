@@ -8,7 +8,7 @@ type Project = {
   description: string;
   tech: string[];
   slug: string;
-  image?: string; // optional (fallback kalau belum ada)
+  image?: string;
 };
 
 export default function ProjectCard({ project }: { project: Project }) {

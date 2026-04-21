@@ -1,0 +1,165 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Admin {
+  id             Int      @id @default(autoincrement())
+  name           String?
+  email          String   @unique
+  password_hash  String
+  remember_token String?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+}
+
+model Project {
+  id           Int       @id @default(autoincrement())
+  title        String
+  description  String?
+  slug         String    @unique
+  project_url  String?
+  is_featured  Boolean   @default(false)
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
+  images       ProjectImage[]
+  details      ProjectDetail?
+  features     ProjectFeature[]
+  techs        ProjectTechRel[]
+  categories   ProjectCategoryRel[]
+}
+
+model ProjectImage {
+  id         Int     @id @default(autoincrement())
+  image_url  String
+  is_primary Boolean @default(false)
+
+  project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  project_id Int
+}
+
+model ProjectDetail {
+  id         Int     @id @default(autoincrement())
+  problem    String?
+  solution   String?
+
+  project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  project_id Int     @unique
+}
+
+model ProjectFeature {
+  id         Int     @id @default(autoincrement())
+  content    String
+
+  project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  project_id Int
+}
+
+model TechStack {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+
+  projects     ProjectTechRel[]
+  experiences  ExperienceTechRel[]
+}
+
+model ProjectTechRel {
+  project   Project   @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  project_id Int
+
+  tech      TechStack @relation(fields: [tech_id], references: [id], onDelete: Cascade)
+  tech_id   Int
+
+  @@id([project_id, tech_id])
+}
+
+model ProjectCategory {
+  id    Int    @id @default(autoincrement())
+  name  String
+  slug  String @unique
+
+  projects ProjectCategoryRel[]
+}
+
+model ProjectCategoryRel {
+  project     Project          @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  project_id  Int
+
+  category    ProjectCategory  @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  category_id Int
+
+  @@id([project_id, category_id])
+}
+
+model Certification {
+  id          Int      @id @default(autoincrement())
+  title       String
+  issuer      String?
+  year        String?
+  description String?
+  slug        String   @unique
+  source_url  String?
+  is_featured Boolean  @default(false)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  images CertificationImage[]
+  skills CertificationSkill[]
+}
+
+model CertificationImage {
+  id                Int            @id @default(autoincrement())
+  image_url         String
+  certification     Certification  @relation(fields: [certification_id], references: [id], onDelete: Cascade)
+  certification_id  Int
+}
+
+model CertificationSkill {
+  id                Int            @id @default(autoincrement())
+  skill             String
+  certification     Certification  @relation(fields: [certification_id], references: [id], onDelete: Cascade)
+  certification_id  Int
+}
+
+model Experience {
+  id              Int      @id @default(autoincrement())
+  title           String
+  company         String?
+  start_date      DateTime?
+  end_date        DateTime?
+  description     String?
+  type            String?
+  certificate_url String?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  points ExperiencePoint[]
+  techs  ExperienceTechRel[]
+}
+
+model ExperiencePoint {
+  id            Int        @id @default(autoincrement())
+  content       String
+  experience    Experience @relation(fields: [experience_id], references: [id], onDelete: Cascade)
+  experience_id Int
+}
+
+model ExperienceTechRel {
+  experience   Experience @relation(fields: [experience_id], references: [id], onDelete: Cascade)
+  experience_id Int
+
+  tech         TechStack  @relation(fields: [tech_id], references: [id], onDelete: Cascade)
+  tech_id      Int
+
+  @@id([experience_id, tech_id])
+}

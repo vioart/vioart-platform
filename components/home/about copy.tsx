@@ -8,12 +8,12 @@ export default function About() {
   return (
     <section
       id="about"
-      className="relative pt-24 md:pt-32 pb-20 md:pb-28 overflow-hidden"
+      className="relative pt-16 pb-20 md:pt-24 md:pb-28 lg:py-32 overflow-hidden"
     >
       {/* BACKGROUND GLOW */}
       <div className="absolute inset-0 -z-10">
-        <div className="absolute left-[-200px] top-[100px] w-[600px] h-[600px] bg-blue-500/5 blur-[120px]" />
-        <div className="absolute right-[-200px] bottom-[0px] w-[600px] h-[600px] bg-purple-500/5 blur-[120px]" />
+        <div className="absolute left-[-200px] top-[100px] w-[600px] h-[600px] bg-blue-500/10 blur-[120px]" />
+        <div className="absolute right-[-200px] bottom-[0px] w-[600px] h-[600px] bg-purple-500/10 blur-[120px]" />
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-2 gap-12 md:gap-16 items-center">
@@ -26,7 +26,7 @@ export default function About() {
         >
           <div className="relative group w-full max-w-sm">
             {/* GLOW */}
-            <div className="absolute -inset-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl blur-xl opacity-20 group-hover:opacity-40 transition" />
+            <div className="absolute -inset-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl blur-xl opacity-30 group-hover:opacity-60 transition" />
 
             <div className="relative rounded-2xl overflow-hidden border border-white/10">
               <Image

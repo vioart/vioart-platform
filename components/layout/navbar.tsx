@@ -2,73 +2,127 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Menu, X } from "lucide-react";
 
 export default function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+
   const getNavClass = (path: string) =>
-    `relative transition duration-300
-   after:absolute after:left-0 after:-bottom-1 after:h-[2px]
-   after:bg-gradient-to-r after:from-blue-400 after:to-purple-500
-   after:transition-all after:duration-300
-   ${
-     pathname === path
-       ? "text-white after:w-full"
-       : "text-gray-400/80 hover:text-white after:w-0 hover:after:w-full"
-   }`;
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+    `text-base font-medium tracking-wide transition duration-300 ${
+      pathname === path
+        ? "text-white"
+        : "text-white/60 hover:text-white"
+    }`;
 
   return (
-    <header
-      className={`
-        fixed top-0 left-0 w-full z-50 transition-all duration-300
-        ${
-          scrolled
-            ? "bg-[#020617]/70 backdrop-blur-xl border-b border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.3)]"
-            : "bg-transparent"
-        }
+    <header className="fixed top-6 left-0 w-full z-50">
+      <div className="max-w-6xl mx-auto px-4">
 
-        before:absolute before:bottom-0 before:left-0 before:w-full before:h-px 
-        before:bg-gradient-to-r before:from-transparent before:via-blue-500/30 before:to-transparent
+        {/* ================= NAV ================= */}
+        <nav
+          className="
+          bg-[#020617]/80 backdrop-blur-xl
+          border border-white/10
+          rounded-full
+          px-6 md:px-10 py-3 md:py-4
+          shadow-[0_10px_40px_rgba(0,0,0,0.5)]
+        "
+        >
+          {/* ===== MOBILE ===== */}
+          <div className="flex items-center justify-between md:hidden">
 
-        after:absolute after:inset-0 after:bg-gradient-to-r after:from-blue-500/5 after:to-purple-500/5 after:pointer-events-none
-      `}
-    >
-      <nav className="max-w-7xl mx-auto flex justify-between items-center px-4 py-5 md:py-6">
-        <h1 className="text-lg md:text-xl font-medium tracking-[0.15em] bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-500 text-transparent bg-clip-text">
-          Vio Arvendha
-        </h1>
+            {/* LOGO */}
+            <div className="flex items-center gap-2 font-bold">
+              <div className="w-4 h-4 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full blur-[2px]" />
+              <span className="text-sm tracking-[0.2em] bg-gradient-to-r from-blue-400 to-purple-500 text-transparent bg-clip-text">
+                Vioart
+              </span>
+            </div>
 
-        <div className="flex gap-8 md:gap-10 items-center">
-          <Link href="/" className={getNavClass("/")}>
-            Home
-          </Link>
+            {/* HAMBURGER */}
+            <button onClick={() => setOpen(!open)}>
+              {open ? (
+                <X className="w-6 h-6 text-white" />
+              ) : (
+                <Menu className="w-6 h-6 text-white" />
+              )}
+            </button>
+          </div>
 
-          <Link href="/projects" className={getNavClass("/projects")}>
-            Project
-          </Link>
+          {/* ===== DESKTOP ===== */}
+          <div className="hidden md:grid grid-cols-3 items-center">
 
-          <Link
-            href="/certifications"
-            className={getNavClass("/certifications")}
-          >
-            Sertifikasi
-          </Link>
+            {/* LEFT */}
+            <div className="flex justify-center gap-10 md:gap-16">
+              <Link href="/" className={getNavClass("/")}>
+                Home
+              </Link>
+              <Link href="/project" className={getNavClass("/project")}>
+                Project
+              </Link>
+            </div>
 
-          <Link href="/experience" className={getNavClass("/experience")}>
-            Pengalaman
-          </Link>
-        </div>
-      </nav>
+            {/* CENTER */}
+            <div className="flex items-center justify-center gap-3 font-bold">
+              <div className="w-5 h-5 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full blur-[2px]" />
+              <span className="text-lg md:text-xl tracking-[0.2em] bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-500 text-transparent bg-clip-text">
+                Vioart
+              </span>
+            </div>
+
+            {/* RIGHT */}
+            <div className="flex justify-center gap-10 md:gap-16">
+              <Link href="/certifications" className={getNavClass("/certifications")}>
+                Sertifikasi
+              </Link>
+              <Link href="/experience" className={getNavClass("/experience")}>
+                Pengalaman
+              </Link>
+            </div>
+          </div>
+        </nav>
+
+        {/* ================= MOBILE DROPDOWN ================= */}
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="
+              mt-3
+              bg-[#020617]/95 backdrop-blur-xl
+              border border-white/10
+              rounded-2xl
+              shadow-xl
+              flex flex-col items-center gap-6 py-6
+              md:hidden
+            "
+            >
+              <Link href="/" onClick={() => setOpen(false)} className={getNavClass("/")}>
+                Home
+              </Link>
+
+              <Link href="/projects" onClick={() => setOpen(false)} className={getNavClass("/projects")}>
+                Project
+              </Link>
+
+              <Link href="/certifications" onClick={() => setOpen(false)} className={getNavClass("/certifications")}>
+                Sertifikasi
+              </Link>
+
+              <Link href="/experience" onClick={() => setOpen(false)} className={getNavClass("/experience")}>
+                Pengalaman
+              </Link>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+      </div>
     </header>
   );
 }

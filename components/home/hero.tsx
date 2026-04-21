@@ -1,115 +1,174 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
+import { useMemo } from "react";
+import { Star } from "lucide-react";
 import { motion } from "framer-motion";
 
+type Particle = {
+  top: number;
+  left: number;
+  duration: number;
+  delay: number;
+  size: number;
+  xMove: number;
+  opacity: number;
+  color: "blue" | "purple";
+};
+
 export default function Hero() {
+  const particles = useMemo<Particle[]>(() => {
+    return Array.from({ length: 16 }).map((_, i) => {
+      const seed = i * 137;
+
+      return {
+        top: (seed % 80) + 10,
+        left: (seed % 90) + 5,
+        duration: 5 + (seed % 5),
+        delay: seed % 3,
+        size: 10 + (seed % 4),
+        xMove: (seed % 40) - 20,
+        opacity: 0.2 + (seed % 40) / 100,
+        color: seed % 2 === 0 ? "blue" : "purple",
+      };
+    });
+  }, []);
+
   return (
-    <section className="relative py-32 overflow-hidden">
+    <section className="relative bg-[#f7f7f7] rounded-b-[100px] overflow-hidden">
+      <motion.div
+        animate={{ opacity: [0.3, 0.5, 0.3] }}
+        transition={{ duration: 6, repeat: Infinity }}
+        className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-indigo-500/5"
+      />
 
-      {/* 🌌 BACKGROUND (FULL WIDTH - NO MORE BOX) */}
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute left-[-300px] top-[-300px] w-[1000px] h-[1000px] bg-[radial-gradient(circle,_rgba(59,130,246,0.15)_0%,_transparent_70%)]" />
-        <div className="absolute right-[-300px] bottom-[-300px] w-[1000px] h-[1000px] bg-[radial-gradient(circle,_rgba(139,92,246,0.15)_0%,_transparent_70%)]" />
-      </div>
+      {/* BIG FLOATING ORBS */}
+      <motion.div
+        animate={{ y: [0, -60, 0] }}
+        transition={{ duration: 14, repeat: Infinity }}
+        className="absolute left-30 top-10 w-[320px] h-80 bg-blue-400/20 blur-[160px] rounded-full"
+      />
 
-      {/* CONTENT */}
-      <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
+      <motion.div
+        animate={{ y: [0, 70, 0] }}
+        transition={{ duration: 16, repeat: Infinity }}
+        className="absolute right-30 top-40 w-85 h-85 bg-purple-400/20 blur-[160px] rounded-full"
+      />
 
-        {/* LEFT */}
-        <div>
+      {/* PARTICLES */}
+      {particles.map((p, i) => (
+        <motion.div
+          key={i}
+          initial={{ opacity: 0 }}
+          animate={{
+            opacity: [0.2, 0.6, 0.2],
+            y: [0, -20, 0],
+            x: [0, p.xMove, 0],
+          }}
+          transition={{
+            duration: p.duration,
+            delay: p.delay,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className={`absolute rounded-full ${
+            p.color === "blue" ? "bg-blue-500" : "bg-purple-500"
+          }`}
+          style={{
+            top: `${p.top}%`,
+            left: `${p.left}%`,
+            width: `${p.size}px`,
+            height: `${p.size}px`,
+            opacity: p.opacity,
+          }}
+        />
+      ))}
 
-          {/* LABEL */}
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-xs tracking-[0.25em] text-blue-400 uppercase mb-6"
-          >
-            Full-Stack Developer
-          </motion.p>
+      {/* CURVE */}
+      <div className="absolute bottom-0 left-0 w-full h-52 bg-white rounded-t-[70%] md:rounded-t-[100%]" />
 
-          {/* TITLE (PERSONAL, BUKAN GENERIC) */}
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-5xl md:text-6xl font-semibold leading-[1.1]"
-          >
-            Hi, I&lsquo;m Vio
-            <br />
-            <span className="bg-gradient-to-r from-blue-400 to-purple-500 text-transparent bg-clip-text">
-              Full-Stack Developer
-            </span>
-          </motion.h1>
+      <div className="relative max-w-7xl mx-auto px-4 pt-28 pb-24 text-center">
+        {/* GLOW */}
+        <div className="absolute left-20 top-20 w-52 h-52 bg-blue-400/20 blur-[120px]" />
+        <div className="absolute right-20 top-32 w-52 h-52 bg-purple-400/20 blur-[120px]" />
 
-          {/* DESCRIPTION */}
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="mt-6 text-gray-400 max-w-md leading-relaxed"
-          >
-            Saya fokus pada backend development, REST API, dan arsitektur sistem
-            yang scalable dengan pendekatan clean code dan performa optimal.
-          </motion.p>
+        {/* LEFT INFO */}
+        <div className="hidden md:block absolute left-12 top-[55%] -translate-y-1/2 text-left text-black max-w-65 space-y-2">
+          <p className="text-xs text-gray-400 tracking-[0.2em]">ABOUT ME</p>
 
-          {/* BUTTON */}
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="mt-10 flex gap-4"
-          >
-            {/* PRIMARY */}
-            <a
-              href="/projects"
-              className="relative px-6 py-3 rounded-lg text-white overflow-hidden group"
-            >
-              <span className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500" />
-              <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300 bg-gradient-to-r from-purple-500 to-blue-500 blur-sm" />
-              <span className="relative z-10 font-medium tracking-wide">
-                Lihat Project →
-              </span>
-            </a>
+          <h3 className="font-semibold text-xl leading-snug">
+            Backend Developer
+          </h3>
 
-            {/* SECONDARY */}
-            <a
-              href="#contact"
-              className="px-6 py-3 rounded-lg border border-white/10 text-gray-300 hover:bg-white/5 transition"
-            >
-              Kontak Saya
-            </a>
-          </motion.div>
-
+          <p className="text-gray-500 text-base leading-relaxed">
+            Mengembangkan REST API dan sistem backend yang scalable, efisien, dan siap production.
+          </p>
         </div>
 
-        {/* RIGHT (FIXED - NO MORE WEIRD CARD) */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="relative flex justify-center"
-        >
-          
-          {/* VISUAL (CLEAN & MEANINGFUL) */}
-          <div className="relative flex justify-center">
+        {/* RIGHT INFO */}
+        <div className="hidden md:block absolute right-12 top-[55%] -translate-y-1/2 text-right text-black space-y-3">
+          <div className="flex justify-end gap-1.5">
+            {[...Array(5)].map((_, i) => (
+              <Star key={i} className="w-5 h-5 text-blue-500 fill-blue-500" />
+            ))}
+          </div>
 
-  {/* FOTO */}
-  <div className="relative w-[280px] h-[280px] rounded-full overflow-hidden border border-white/10">
-    <img
-      src="/profile.png"
-      alt="Vio Arvendha"
-      className="object-cover w-full h-full"
-    />
-  </div>
+          <h2 className="text-2xl font-bold">3 Tahun</h2>
 
-  {/* GLOW */}
-  <div className="absolute w-[400px] h-[400px] bg-gradient-to-r from-blue-500/20 to-purple-500/20 blur-[120px] -z-10" />
+          <p className="text-gray-500 text-sm">Experience</p>
+        </div>
 
-</div>
+        {/* TITLE */}
+        <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold leading-tight text-black mb-6">
+          Membangun Sistem <br />
+          <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-transparent bg-clip-text">
+            Scalable & Reliable
+          </span>
+        </h1>
 
-          {/* GLOW */}
-          <div className="absolute w-[450px] h-[450px] bg-gradient-to-r from-blue-500/20 to-purple-500/20 blur-[140px] -z-10" />
+        {/* IMAGE */}
+        <div className="relative flex justify-center mt-1">
+          <motion.div
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ duration: 5, repeat: Infinity }}
+            className="absolute w-125 h-125 bg-gradient-to-r from-blue-400/20 to-purple-400/20 blur-[120px] rounded-full"
+          />
+          <motion.div
+            animate={{ y: [0, -10, 0] }}
+            transition={{ duration: 4, repeat: Infinity }}
+          >
+            <Image
+              src="/images/character.png"
+              alt="hero"
+              width={480}
+              height={480}
+              className="relative z-10 object-contain"
+            />
+          </motion.div>
 
-        </motion.div>
+          {/* CTA */}
+          <div className="absolute -bottom-2 z-20 flex items-center rounded-full overflow-hidden shadow-xl text-xs md:text-sm border border-white/10 bg-[#020617]">
+            <Link
+              href="/project"
+              className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium inline-block"
+            >
+              Lihat Project
+            </Link>
 
+            <button
+              onClick={() =>
+                window.open(
+                  "https://wa.me/6285702220093?text=Halo Vio, saya tertarik dengan jasa anda :)",
+                  "_blank",
+                )
+              }
+              className="px-6 py-2.5 text-white/70 hover:text-white transition"
+            >
+              Kontak Saya
+            </button>
+          </div>
+        </div>
       </div>
     </section>
   );
