@@ -43,3 +43,20 @@ body {
   color: var(--text-main);
   font-family: var(--font-geist-sans), Arial, sans-serif;
 }
+
+.admin-input {
+  @apply w-full px-4 py-2.5
+  border border-gray-300
+  rounded-lg text-sm text-gray-800
+  placeholder:text-gray-500
+  bg-white
+  shadow-sm
+  outline-none
+  focus:ring-2 focus:ring-[#54ACBF]/40
+  focus:border-[#54ACBF]
+  transition;
+}
+
+.admin-label {
+  @apply text-sm font-semibold text-gray-800;
+}

@@ -18,6 +18,7 @@ model Admin {
   email          String   @unique
   password_hash  String
   remember_token String?
+  avatar_url     String?
   created_at     DateTime @default(now())
   updated_at     DateTime @updatedAt
 }
@@ -65,37 +66,47 @@ model ProjectFeature {
   project_id Int
 }
 
-model TechStack {
-  id    Int    @id @default(autoincrement())
-  name  String @unique
+model Tech {
+  id   Int    @id @default(autoincrement())
+  name String @unique
 
-  projects     ProjectTechRel[]
-  experiences  ExperienceTechRel[]
+  projects ProjectTechRel[]
 }
 
 model ProjectTechRel {
-  project   Project   @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  project_id Int
+  project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  project_id  Int
 
-  tech      TechStack @relation(fields: [tech_id], references: [id], onDelete: Cascade)
-  tech_id   Int
+  tech        Tech    @relation(fields: [tech_id], references: [id])
+  tech_id     Int
 
   @@id([project_id, tech_id])
 }
 
-model ProjectCategory {
-  id    Int    @id @default(autoincrement())
-  name  String
-  slug  String @unique
+model Category {
+  id   Int    @id @default(autoincrement())
+  name String
+  slug String @unique
 
-  projects ProjectCategoryRel[]
+  projects       ProjectCategoryRel[]
+  certifications CertificationCategoryRel[]
+}
+
+model CertificationCategoryRel {
+  certification     Certification @relation(fields: [certification_id], references: [id], onDelete: Cascade)
+  certification_id  Int
+
+  category          Category @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  category_id       Int
+
+  @@id([certification_id, category_id])
 }
 
 model ProjectCategoryRel {
-  project     Project          @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  project     Project  @relation(fields: [project_id], references: [id], onDelete: Cascade)
   project_id  Int
 
-  category    ProjectCategory  @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  category    Category @relation(fields: [category_id], references: [id], onDelete: Cascade)
   category_id Int
 
   @@id([project_id, category_id])
@@ -105,7 +116,7 @@ model Certification {
   id          Int      @id @default(autoincrement())
   title       String
   issuer      String?
-  year        String?
+  year        Int?
   description String?
   slug        String   @unique
   source_url  String?
@@ -115,6 +126,7 @@ model Certification {
 
   images CertificationImage[]
   skills CertificationSkill[]
+  categories CertificationCategoryRel[]
 }
 
 model CertificationImage {
@@ -144,7 +156,6 @@ model Experience {
   updated_at      DateTime @updatedAt
 
   points ExperiencePoint[]
-  techs  ExperienceTechRel[]
 }
 
 model ExperiencePoint {
@@ -152,14 +163,4 @@ model ExperiencePoint {
   content       String
   experience    Experience @relation(fields: [experience_id], references: [id], onDelete: Cascade)
   experience_id Int
-}
-
-model ExperienceTechRel {
-  experience   Experience @relation(fields: [experience_id], references: [id], onDelete: Cascade)
-  experience_id Int
-
-  tech         TechStack  @relation(fields: [tech_id], references: [id], onDelete: Cascade)
-  tech_id      Int
-
-  @@id([experience_id, tech_id])
 }
