@@ -30,7 +30,7 @@ export default function About() {
 
             <div className="relative rounded-2xl overflow-hidden border border-white/10">
               <Image
-                src="/images/profile.png"
+                src="/images/profile.webp"
                 alt="Vio Arvendha"
                 width={420}
                 height={420}

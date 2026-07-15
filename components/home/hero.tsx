@@ -139,7 +139,7 @@ export default function Hero() {
             transition={{ duration: 4, repeat: Infinity }}
           >
             <Image
-              src="/images/character.png"
+              src="/images/character.webp"
               alt="hero"
               width={480}
               height={480}
