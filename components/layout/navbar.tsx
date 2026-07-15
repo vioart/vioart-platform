@@ -107,7 +107,7 @@ export default function Navbar() {
                 Home
               </Link>
 
-              <Link href="/projects" onClick={() => setOpen(false)} className={getNavClass("/projects")}>
+              <Link href="/project" onClick={() => setOpen(false)} className={getNavClass("/project")}>
                 Project
               </Link>
 
