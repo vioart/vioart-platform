@@ -1,89 +1,53 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useProjectForm } from "@/hooks/useProjectForm";
-import { useImages } from "@/hooks/useImages";
-import { useFeatures } from "@/hooks/useFeatures";
-import { useTechAndCategory } from "@/hooks/useTechAndCategory";
-import { ProjectInfo } from "@/components/admin/project/ProjectInfo";
-import { ProjectMedia } from "@/components/admin/project/ProjectMedia";
-import { ProjectDetail } from "@/components/admin/project/ProjectDetail";
-import { ProjectFeatures } from "@/components/admin/project/ProjectFeatures";
-import { TechSelector } from "@/components/admin/project/TechSelector";
-import { CategorySelector } from "@/components/admin/project/CategorySelector";
 
-type Tech = {
-  id: number;
-  name: string;
-};
+import { FormField } from "@/components/ui/form/formField";
+import { FormTextarea } from "@/components/ui/form/formTextArea";
+import { FormListField } from "@/components/ui/form/formListField";
 
-type Category = {
-  id: number;
-  name: string;
-  slug: string;
-};
+import { useExperienceForm } from "@/hooks/useExperienceForm";
 
-export default function CreateProjectPage() {
+export default function CreateExperiencePage() {
   const router = useRouter();
-  const form = useProjectForm();
-  const image = useImages();
-  const feature = useFeatures();
-  const techCat = useTechAndCategory();
-  const [techs, setTechs] = useState<Tech[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const form = useExperienceForm();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const [techRes, catRes] = await Promise.all([
-        fetch("/api/admin/tech"),
-        fetch("/api/admin/category"),
-      ]);
+  const [points, setPoints] = useState<string[]>([""]);
 
-      const techData: Tech[] = await techRes.json();
-      const catData: Category[] = await catRes.json();
+  const handlePointChange = (value: string, index: number) => {
+    const updated = [...points];
+    updated[index] = value;
+    setPoints(updated);
+  };
 
-      setTechs(techData);
-      setCategories(catData);
-    };
+  const addPoint = () => {
+    setPoints([...points, ""]);
+  };
 
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      image.images.forEach((img) => URL.revokeObjectURL(img.preview));
-    };
-  }, [image.images]);
+  const removePoint = (index: number) => {
+    setPoints(points.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async () => {
     try {
       const formData = new FormData();
 
       formData.append("title", form.title);
-      formData.append("slug", form.slug);
-      formData.append("project_url", form.url);
+      formData.append("company", form.company);
+      formData.append("type", form.type);
+      formData.append("start_date", form.startDate);
+      formData.append("end_date", form.endDate);
+      formData.append("certificate_url", form.certificateUrl);
       formData.append("description", form.description);
-      formData.append("is_featured", String(form.isFeatured));
-      formData.append("problem", form.problem);
-      formData.append("solution", form.solution);
 
-      feature.features.forEach((f) => formData.append("features[]", f));
-      techCat.selectedTechs.forEach((id) =>
-        formData.append("tech_ids[]", String(id)),
-      );
-      techCat.selectedCategories.forEach((id) =>
-        formData.append("category_ids[]", String(id)),
-      );
+      points
+        .filter((p) => p.trim() !== "")
+        .forEach((point) => {
+          formData.append("points[]", point);
+        });
 
-      image.images.forEach((img) => {
-        if (!img.file && img.preview.includes("/uploads/temp")) {
-          formData.append("temp_images[]", img.preview);
-          formData.append("is_primary[]", String(img.is_primary));
-        }
-      });
-
-      const res = await fetch("/api/admin/project", {
+      const res = await fetch("/api/admin/pengalaman", {
         method: "POST",
         body: formData,
       });
@@ -93,11 +57,12 @@ export default function CreateProjectPage() {
       if (!res.ok) {
         alert(data.error);
       } else {
-        alert("Berhasil tambah project");
-        router.push("/admin/project");
+        alert("Berhasil tambah pengalaman");
+        router.push("/admin/pengalaman");
       }
     } catch (err) {
       console.error(err);
+      alert("Terjadi kesalahan");
     }
   };
 
@@ -106,61 +71,102 @@ export default function CreateProjectPage() {
       {/* HEADER */}
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-[#023859]">
-          Tambah Project
+          Tambah Pengalaman
         </h1>
+
         <p className="text-sm text-gray-500">
-          Isi informasi lengkap project yang akan ditampilkan
+          Isi informasi pengalaman yang akan ditampilkan
         </p>
       </div>
 
-      {/* MAIN CARD */}
+      {/* CARD */}
       <div className="bg-white rounded-2xl border shadow-sm p-8 space-y-10">
-        {/* 1. INFO */}
-        <ProjectInfo form={form} />
-
-        {/* 2. MEDIA */}
-        <ProjectMedia
-          image={image}
-          onUpload={(files) => image.addImages(files)}
-          onDrop={(files) => image.addImages(files)}
-        />
-
-        {/* 3. DETAIL */}
-        <ProjectDetail form={form} />
-
-        {/* 4. FEATURES */}
-        <ProjectFeatures feature={feature} />
-
-        {/* SECTION 5 */}
-        <div className="space-y-6">
+        {/* INFORMASI */}
+        <div className="space-y-5">
           <h2 className="text-base font-semibold text-[#023859] border-b pb-2">
-            Teknologi & Kategori
+            Informasi Pengalaman
           </h2>
 
-          <p className="text-sm text-gray-500">
-            Pilih teknologi yang digunakan dan kategori project
-          </p>
+          <FormField
+            label="Judul Pengalaman"
+            value={form.title}
+            onChange={form.setTitle}
+            placeholder="Contoh: Backend Developer Intern"
+          />
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <TechSelector techs={techs} techCat={techCat} />
-            <CategorySelector categories={categories} techCat={techCat} />
+          <div className="grid md:grid-cols-2 gap-5">
+            <FormField
+              label="Perusahaan"
+              value={form.company}
+              onChange={form.setCompany}
+              placeholder="PT ABC Indonesia"
+            />
+
+            <FormField
+              label="Jenis Pengalaman"
+              value={form.type}
+              onChange={form.setType}
+              placeholder="Internship / Freelance / Fulltime"
+            />
           </div>
+
+          <div className="grid md:grid-cols-2 gap-5">
+            <FormField
+              label="Tanggal Mulai"
+              value={form.startDate}
+              onChange={form.setStartDate}
+              type="date"
+            />
+
+            <FormField
+              label="Tanggal Selesai"
+              value={form.endDate}
+              onChange={form.setEndDate}
+              type="date"
+            />
+          </div>
+
+          <FormField
+            label="URL Sertifikat"
+            value={form.certificateUrl}
+            onChange={form.setCertificateUrl}
+            placeholder="https://example.com/certificate"
+          />
+
+          <FormTextarea
+            label="Deskripsi Pengalaman"
+            value={form.description}
+            onChange={form.setDescription}
+            placeholder="Jelaskan pengalaman yang pernah dilakukan..."
+          />
         </div>
+
+        {/* POINT */}
+        <FormListField
+          title="Poin Pengalaman"
+          description="Tambahkan pencapaian atau tanggung jawab selama menjalani pengalaman ini."
+          items={points}
+          onAdd={addPoint}
+          onRemove={removePoint}
+          onChange={handlePointChange}
+          labelPrefix="Poin"
+          placeholder="Contoh: Mengembangkan REST API menggunakan Laravel"
+        />
 
         {/* ACTION */}
         <div className="flex justify-end gap-3 pt-4 border-t">
           <button
-            onClick={() => router.push("/admin/project")}
-            className="px-4 py-2 rounded-lg border text-gray-600 hover:bg-gray-100"
+            onClick={() => router.push("/admin/pengalaman")}
+            className="px-4 py-2 rounded-lg border text-gray-600 hover:bg-gray-100 transition"
           >
             Batal
           </button>
 
           <button
             onClick={handleSubmit}
-            className="px-5 py-2 bg-[#54ACBF] text-white rounded-lg hover:bg-[#26658C]"
+            className="px-5 py-2 bg-[#54ACBF] text-white rounded-lg hover:bg-[#26658C] transition"
           >
-            Simpan Project
+            Simpan Pengalaman
           </button>
         </div>
       </div>

@@ -12,14 +12,14 @@ import { usePagination } from "@/hooks/usePagination";
 import TableWrapper from "@/components/ui/table-wrapper";
 import TableHeader from "@/components/ui/table-header";
 import ConfirmModal from "@/components/ui/confirm-modal";
-import ProjectDetailModal from "@/components/ui/project-detail-modal";
+import ExperienceDetailModal from "@/components/ui/experience-detail-modal";
 
 import { experienceColumns } from "@/configs/experience.columns";
 import { Experience } from "@/types/experience";
 
 type SortType = "newest" | "oldest" | "az" | "za";
 
-export default function CertificationPage() {
+export default function ExperiencePage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(5);
@@ -48,7 +48,10 @@ export default function CertificationPage() {
   const filterFn = (item: Experience, keyword: string) => {
     return (
       item.title.toLowerCase().includes(keyword) ||
-      (item.company ?? "").toLowerCase().includes(keyword)
+      (item.company ?? "").toLowerCase().includes(keyword) ||
+      (item.type ?? "").toLowerCase().includes(keyword) ||
+      (item.description ?? "").toLowerCase().includes(keyword) ||
+      item.points.some((p) => p.content.toLowerCase().includes(keyword))
     );
   };
 
@@ -111,6 +114,8 @@ export default function CertificationPage() {
         open={open}
         setOpen={setOpen}
         sortOptions={sortOptions}
+        createUrl="/admin/pengalaman/create"
+        menuName="pengalaman"
       />
 
       {/* TABLE */}
@@ -174,7 +179,7 @@ export default function CertificationPage() {
         }}
       />
 
-      <ProjectDetailModal
+      <ExperienceDetailModal
         open={viewData !== null}
         data={viewData}
         onClose={() => setViewData(null)}

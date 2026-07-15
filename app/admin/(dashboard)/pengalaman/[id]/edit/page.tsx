@@ -3,228 +3,237 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-import { useProjectForm } from "@/hooks/useProjectForm";
-import { useImages } from "@/hooks/useImages";
-import { useFeatures } from "@/hooks/useFeatures";
-import { useTechAndCategory } from "@/hooks/useTechAndCategory";
+import { useExperienceForm } from "@/hooks/useExperienceForm";
 
-import { ProjectInfo } from "@/components/admin/project/ProjectInfo";
-import { ProjectMedia } from "@/components/admin/project/ProjectMedia";
-import { ProjectDetail } from "@/components/admin/project/ProjectDetail";
-import { ProjectFeatures } from "@/components/admin/project/ProjectFeatures";
-import { TechSelector } from "@/components/admin/project/TechSelector";
-import { CategorySelector } from "@/components/admin/project/CategorySelector";
+import { FormField } from "@/components/ui/form/formField";
+import { FormTextarea } from "@/components/ui/form/formTextArea";
+import { FormListField } from "@/components/ui/form/formListField";
 
-type Tech = { id: number; name: string };
-type Category = { id: number; name: string; slug: string };
-
-type ProjectResponse = {
+type ExperienceResponse = {
   id: number;
   title: string;
-  slug: string;
-  project_url: string;
-  description: string;
-  is_featured: boolean;
+  company?: string;
+  type?: string;
+  start_date?: string;
+  end_date?: string;
+  certificate_url?: string;
+  description?: string;
 
-  details?: {
-    problem?: string;
-    solution?: string;
-  };
-
-  features: {
+  points: {
     id: number;
     content: string;
   }[];
-
-  techs: {
-    tech: {
-      id: number;
-      name: string;
-    };
-  }[];
-
-  categories: {
-    category: {
-      id: number;
-      name: string;
-      slug: string;
-    };
-  }[];
-
-  images: {
-    id: number;
-    image_url: string;
-    is_primary: boolean;
-  }[];
 };
 
-export default function EditProjectPage() {
+export default function EditExperiencePage() {
   const params = useParams();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
+
   const router = useRouter();
+  const form = useExperienceForm();
 
-  const form = useProjectForm();
-  const image = useImages();
-  const feature = useFeatures();
-  const techCat = useTechAndCategory();
-
-  const [techs, setTechs] = useState<Tech[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [points, setPoints] = useState<string[]>([""]);
   const [loading, setLoading] = useState(true);
 
-  // FETCH MASTER DATA
-  useEffect(() => {
-    const fetchMaster = async () => {
-      const [techRes, catRes] = await Promise.all([
-        fetch("/api/admin/tech"),
-        fetch("/api/admin/category"),
-      ]);
-
-      setTechs(await techRes.json());
-      setCategories(await catRes.json());
-    };
-
-    fetchMaster();
-  }, []);
-
-  // FETCH PROJECT BY ID
   useEffect(() => {
     if (!id) return;
 
-    const fetchProject = async () => {
-      const res = await fetch(`/api/admin/project/${id}`);
-      if (!res.ok) {
-        console.error("API ERROR:", await res.text());
-        return;
+    const fetchData = async () => {
+      const res = await fetch(`/api/admin/pengalaman/${id}`);
+      const data: ExperienceResponse = await res.json();
+
+      form.setAll({
+        title: data.title,
+        company: data.company ?? "",
+        type: data.type ?? "",
+        startDate: data.start_date
+          ? data.start_date.slice(0, 10)
+          : "",
+        endDate: data.end_date
+          ? data.end_date.slice(0, 10)
+          : "",
+        certificateUrl: data.certificate_url ?? "",
+        description: data.description ?? "",
+      });
+
+      if (data.points.length > 0) {
+        setPoints(data.points.map((p) => p.content));
       }
-
-      const data: ProjectResponse = await res.json();
-
-      form.setTitle(data.title);
-      form.setSlug(data.slug);
-      form.setUrl(data.project_url);
-      form.setDescription(data.description);
-      form.setIsFeatured(data.is_featured);
-      form.setProblem(data.details?.problem || "");
-      form.setSolution(data.details?.solution || "");
-
-      feature.setFeatures(data.features.map((f) => f.content));
-
-      techCat.setSelectedTechs(data.techs.map((t) => t.tech.id));
-
-      techCat.setSelectedCategories(data.categories.map((c) => c.category.id));
-
-      image.setImages(
-        data.images.map((img) => ({
-          uid:
-            typeof crypto !== "undefined" && crypto.randomUUID
-              ? crypto.randomUUID()
-              : Math.random().toString(36).substring(2),
-
-          id: img.id,
-          file: null,
-          preview: img.image_url,
-          is_primary: img.is_primary,
-          progress: 100,
-        })),
-      );
 
       setLoading(false);
     };
 
-    fetchProject();
+    fetchData();
   }, [id]);
 
-  // UPDATE
+  const handlePointChange = (
+    value: string,
+    index: number,
+  ) => {
+    const updated = [...points];
+    updated[index] = value;
+    setPoints(updated);
+  };
+
+  const addPoint = () => {
+    setPoints([...points, ""]);
+  };
+
+  const removePoint = (index: number) => {
+    setPoints(points.filter((_, i) => i !== index));
+  };
+
   const handleUpdate = async () => {
-    const formData = new FormData();
+    try {
+      const formData = new FormData();
 
-    formData.append("title", form.title);
-    formData.append("slug", form.slug);
-    formData.append("project_url", form.url);
-    formData.append("description", form.description);
-    formData.append("is_featured", String(form.isFeatured));
-    formData.append("problem", form.problem);
-    formData.append("solution", form.solution);
+      formData.append("title", form.title);
+      formData.append("company", form.company);
+      formData.append("type", form.type);
+      formData.append("start_date", form.startDate);
+      formData.append("end_date", form.endDate);
+      formData.append(
+        "certificate_url",
+        form.certificateUrl,
+      );
+      formData.append(
+        "description",
+        form.description,
+      );
 
-    feature.features.forEach((f) => formData.append("features[]", f));
-    techCat.selectedTechs.forEach((id) =>
-      formData.append("tech_ids[]", String(id)),
-    );
-    techCat.selectedCategories.forEach((id) =>
-      formData.append("category_ids[]", String(id)),
-    );
+      points
+        .filter((p) => p.trim() !== "")
+        .forEach((point) => {
+          formData.append("points[]", point);
+        });
 
-    image.deletedIds.forEach((id) => {
-      formData.append("delete_image_ids[]", String(id));
-    });
+      const res = await fetch(
+        `/api/admin/pengalaman/${id}`,
+        {
+          method: "PUT",
+          body: formData,
+        },
+      );
 
-    image.images.forEach((img) => {
-      if (!img.file && img.preview.includes("/uploads/temp")) {
-        formData.append("temp_images[]", img.preview);
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error);
+        return;
       }
-    });
 
-    image.images.forEach((img) => {
-      formData.append("is_primary[]", String(img.is_primary));
-    });
-
-    const res = await fetch(`/api/admin/project/${id}`, {
-      method: "PUT",
-      body: formData,
-    });
-
-    if (res.ok) {
-      alert("Berhasil update project");
-      router.push("/admin/project");
+      alert("Berhasil update pengalaman");
+      router.push("/admin/pengalaman");
+    } catch (err) {
+      console.error(err);
+      alert("Terjadi kesalahan");
     }
   };
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) {
+    return <p>Loading...</p>;
+  }
 
-  return (
+    return (
     <div className="w-full max-w-7xl mx-auto">
+      {/* HEADER */}
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-[#023859]">Edit Project</h1>
-        <p className="text-sm text-gray-500">Perbarui informasi project</p>
+        <h1 className="text-2xl font-semibold text-[#023859]">
+          Edit Pengalaman
+        </h1>
+
+        <p className="text-sm text-gray-500">
+          Perbarui informasi pengalaman
+        </p>
       </div>
 
+      {/* CARD */}
       <div className="bg-white rounded-2xl border shadow-sm p-8 space-y-10">
-        <ProjectInfo form={form} />
-
-        <ProjectMedia
-          image={image}
-          onUpload={(files) => image.addImages(files)}
-          onDrop={(files) => image.addImages(files)}
-        />
-
-        <ProjectDetail form={form} />
-        <ProjectFeatures feature={feature} />
-
-        <div className="space-y-6">
+        {/* INFORMASI */}
+        <div className="space-y-5">
           <h2 className="text-base font-semibold text-[#023859] border-b pb-2">
-            Teknologi & Kategori
+            Informasi Pengalaman
           </h2>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <TechSelector techs={techs} techCat={techCat} />
-            <CategorySelector categories={categories} techCat={techCat} />
+          <FormField
+            label="Judul Pengalaman"
+            value={form.title}
+            onChange={form.setTitle}
+            placeholder="Contoh: Backend Developer Intern"
+          />
+
+          <div className="grid md:grid-cols-2 gap-5">
+            <FormField
+              label="Perusahaan"
+              value={form.company}
+              onChange={form.setCompany}
+              placeholder="PT ABC Indonesia"
+            />
+
+            <FormField
+              label="Jenis Pengalaman"
+              value={form.type}
+              onChange={form.setType}
+              placeholder="Internship / Freelance / Fulltime"
+            />
           </div>
+
+          <div className="grid md:grid-cols-2 gap-5">
+            <FormField
+              label="Tanggal Mulai"
+              value={form.startDate}
+              onChange={form.setStartDate}
+              type="date"
+            />
+
+            <FormField
+              label="Tanggal Selesai"
+              value={form.endDate}
+              onChange={form.setEndDate}
+              type="date"
+            />
+          </div>
+
+          <FormField
+            label="URL Sertifikat"
+            value={form.certificateUrl}
+            onChange={form.setCertificateUrl}
+            placeholder="https://example.com/certificate"
+          />
+
+          <FormTextarea
+            label="Deskripsi Pengalaman"
+            value={form.description}
+            onChange={form.setDescription}
+            placeholder="Jelaskan pengalaman yang pernah dilakukan..."
+          />
         </div>
 
+        {/* POINT */}
+        <FormListField
+          title="Poin Pengalaman"
+          description="Tambahkan pencapaian atau tanggung jawab selama menjalani pengalaman ini."
+          items={points}
+          onAdd={addPoint}
+          onRemove={removePoint}
+          onChange={handlePointChange}
+          labelPrefix="Poin"
+          placeholder="Contoh: Mengembangkan REST API menggunakan Laravel"
+        />
+
+        {/* ACTION */}
         <div className="flex justify-end gap-3 pt-4 border-t">
           <button
-            onClick={() => router.push("/admin/project")}
-            className="px-4 py-2 rounded-lg border text-gray-600 hover:bg-gray-100"
+            onClick={() => router.push("/admin/pengalaman")}
+            className="px-4 py-2 rounded-lg border text-gray-600 hover:bg-gray-100 transition"
           >
             Batal
           </button>
 
           <button
             onClick={handleUpdate}
-            className="px-5 py-2 bg-[#54ACBF] text-white rounded-lg hover:bg-[#26658C]"
+            className="px-5 py-2 bg-[#54ACBF] text-white rounded-lg hover:bg-[#26658C] transition"
           >
-            Update Project
+            Update Pengalaman
           </button>
         </div>
       </div>

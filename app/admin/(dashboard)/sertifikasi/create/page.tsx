@@ -60,6 +60,10 @@ export default function CreateCertificationPage() {
 
       skills.forEach((s) => formData.append("skills[]", s));
 
+      techCat.selectedCategories.forEach((id) => {
+        formData.append("category_ids[]", String(id));
+      });
+
       image.images.forEach((img) => {
         if (!img.file && img.preview.includes("/uploads/temp")) {
           formData.append("temp_images[]", img.preview);

@@ -3,6 +3,7 @@ import { writeFile } from "fs/promises";
 import { unlink } from "fs/promises";
 import path from "path";
 import { readFile } from "fs/promises";
+import fs from "fs";
 
 export async function GET(
   req: Request,
@@ -61,6 +62,7 @@ export async function PUT(
     const title = formData.get("title") as string;
     const slug = formData.get("slug") as string;
     const issuer = formData.get("issuer") as string;
+
     const rawYear = formData.get("year");
     const year = rawYear && !isNaN(Number(rawYear)) ? Number(rawYear) : null;
 
@@ -69,14 +71,112 @@ export async function PUT(
     const is_featured = formData.get("is_featured") === "true";
 
     const skills = formData.getAll("skills[]") as string[];
-    const category_ids = formData.getAll("category_ids[]").map(Number);
+
+    const category_ids = formData
+      .getAll("category_ids[]")
+      .map(Number)
+      .filter((id) => !isNaN(id));
 
     const deleteImageIds = formData.getAll("delete_image_ids[]").map(Number);
+
     const tempUrls = formData.getAll("temp_images[]") as string[];
+
+    if (!title || !slug) {
+      return Response.json(
+        {
+          error: "Title dan slug wajib diisi",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    if (category_ids.length === 0) {
+      return Response.json(
+        {
+          error: "Minimal pilih satu kategori",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    const certification = await prisma.certification.findUnique({
+      where: {
+        id: certId,
+      },
+    });
+
+    if (!certification) {
+      return Response.json(
+        {
+          error: "Data sertifikasi tidak ditemukan",
+        },
+        {
+          status: 404,
+        },
+      );
+    }
+
+    const existingSlug = await prisma.certification.findFirst({
+      where: {
+        slug,
+        NOT: {
+          id: certId,
+        },
+      },
+    });
+
+    if (existingSlug) {
+      return Response.json(
+        {
+          error: "Slug sudah digunakan",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    const existingCategories = await prisma.category.findMany({
+      where: {
+        id: {
+          in: category_ids,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingCategories.length !== category_ids.length) {
+      return Response.json(
+        {
+          error: "Kategori tidak valid",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    const uploadDir = path.join(process.cwd(), "public/uploads/certifications");
+
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, {
+        recursive: true,
+      });
+    }
 
     if (deleteImageIds.length > 0) {
       const images = await prisma.certificationImage.findMany({
-        where: { id: { in: deleteImageIds } },
+        where: {
+          id: {
+            in: deleteImageIds,
+          },
+        },
       });
 
       for (const img of images) {
@@ -89,21 +189,28 @@ export async function PUT(
 
           await unlink(filePath);
         } catch {
-          console.warn("Gagal hapus file:", img.image_url);
+          console.warn("Gagal menghapus file:", img.image_url);
         }
       }
 
       await prisma.certificationImage.deleteMany({
-        where: { id: { in: deleteImageIds } },
+        where: {
+          id: {
+            in: deleteImageIds,
+          },
+        },
       });
     }
 
-    const newImages: { image_url: string }[] = [];
+    const newImages: {
+      image_url: string;
+    }[] = [];
 
     for (const tempUrl of tempUrls) {
       if (!tempUrl) continue;
 
       const fileName = tempUrl.split("/").pop();
+
       if (!fileName) continue;
 
       const oldPath = path.join(
@@ -120,10 +227,13 @@ export async function PUT(
 
       try {
         const buffer = await readFile(oldPath);
+
         await writeFile(newPath, buffer);
+
         await unlink(oldPath);
       } catch (err) {
-        console.error("Gagal pindah file:", oldPath, err);
+        console.error("Gagal memindahkan gambar:", err);
+
         continue;
       }
 
@@ -132,8 +242,13 @@ export async function PUT(
       });
     }
 
+    const cleanSkills = skills.filter((s) => s.trim() !== "");
+
     const updated = await prisma.certification.update({
-      where: { id: certId },
+      where: {
+        id: certId,
+      },
+
       data: {
         title,
         slug,
@@ -145,13 +260,19 @@ export async function PUT(
 
         skills: {
           deleteMany: {},
-          create: skills.map((s) => ({ skill: s })),
+          create: cleanSkills.map((skill) => ({
+            skill,
+          })),
         },
 
         categories: {
           deleteMany: {},
           create: category_ids.map((id) => ({
-            category: { connect: { id } },
+            category: {
+              connect: {
+                id,
+              },
+            },
           })),
         },
 
@@ -162,9 +283,13 @@ export async function PUT(
 
       include: {
         images: true,
+
         skills: true,
+
         categories: {
-          include: { category: true },
+          include: {
+            category: true,
+          },
         },
       },
     });
@@ -172,9 +297,14 @@ export async function PUT(
     return Response.json(updated);
   } catch (error) {
     console.error(error);
+
     return Response.json(
-      { error: "Terjadi kesalahan server" },
-      { status: 500 },
+      {
+        error: "Terjadi kesalahan server",
+      },
+      {
+        status: 500,
+      },
     );
   }
 }
@@ -189,6 +319,23 @@ export async function DELETE(
 
     if (!id || isNaN(certId)) {
       return Response.json({ error: "ID tidak valid" }, { status: 400 });
+    }
+
+    const certification = await prisma.certification.findUnique({
+      where: {
+        id: certId,
+      },
+    });
+
+    if (!certification) {
+      return Response.json(
+        {
+          error: "Sertifikasi tidak ditemukan",
+        },
+        {
+          status: 404,
+        },
+      );
     }
 
     const images = await prisma.certificationImage.findMany({
