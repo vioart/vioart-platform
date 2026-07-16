@@ -14,6 +14,7 @@ import { ProjectDetail } from "@/components/admin/project/ProjectDetail";
 import { ProjectFeatures } from "@/components/admin/project/ProjectFeatures";
 import { TechSelector } from "@/components/admin/project/TechSelector";
 import { CategorySelector } from "@/components/admin/project/CategorySelector";
+import { toast } from "sonner";
 
 type Tech = { id: number; name: string };
 type Category = { id: number; name: string; slug: string };
@@ -71,6 +72,7 @@ export default function EditProjectPage() {
   const [techs, setTechs] = useState<Tech[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   // FETCH MASTER DATA
   useEffect(() => {
@@ -137,46 +139,66 @@ export default function EditProjectPage() {
 
   // UPDATE
   const handleUpdate = async () => {
-    const formData = new FormData();
+    if (saving) return;
 
-    formData.append("title", form.title);
-    formData.append("slug", form.slug);
-    formData.append("project_url", form.url);
-    formData.append("description", form.description);
-    formData.append("is_featured", String(form.isFeatured));
-    formData.append("problem", form.problem);
-    formData.append("solution", form.solution);
+    setSaving(true);
+    try {
+      const formData = new FormData();
 
-    feature.features.forEach((f) => formData.append("features[]", f));
-    techCat.selectedTechs.forEach((id) =>
-      formData.append("tech_ids[]", String(id)),
-    );
-    techCat.selectedCategories.forEach((id) =>
-      formData.append("category_ids[]", String(id)),
-    );
+      formData.append("title", form.title);
+      formData.append("slug", form.slug);
+      formData.append("project_url", form.url);
+      formData.append("description", form.description);
+      formData.append("is_featured", String(form.isFeatured));
+      formData.append("problem", form.problem);
+      formData.append("solution", form.solution);
 
-    image.deletedIds.forEach((id) => {
-      formData.append("delete_image_ids[]", String(id));
-    });
+      feature.features.forEach((f) => formData.append("features[]", f));
 
-    image.images.forEach((img) => {
-      if (!img.file && img.preview.includes("/uploads/temp")) {
-        formData.append("temp_images[]", img.preview);
+      techCat.selectedTechs.forEach((id) =>
+        formData.append("tech_ids[]", String(id)),
+      );
+
+      techCat.selectedCategories.forEach((id) =>
+        formData.append("category_ids[]", String(id)),
+      );
+
+      image.deletedIds.forEach((id) => {
+        formData.append("delete_image_ids[]", String(id));
+      });
+
+      image.images.forEach((img) => {
+        if (!img.id && img.preview.startsWith("/api/files/temp/")) {
+          formData.append("temp_images[]", img.preview);
+          formData.append("is_primary[]", String(img.is_primary));
+        }
+      });
+
+      const res = await fetch(`/api/admin/project/${id}`, {
+        method: "PUT",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => null);
+
+        toast.error(
+          error?.error ??
+            error?.message ??
+            "Gagal memperbarui project. Silakan coba lagi.",
+        );
+
+        return;
       }
-    });
 
-    image.images.forEach((img) => {
-      formData.append("is_primary[]", String(img.is_primary));
-    });
+      toast.success("Project berhasil diperbarui.");
 
-    const res = await fetch(`/api/admin/project/${id}`, {
-      method: "PUT",
-      body: formData,
-    });
-
-    if (res.ok) {
-      alert("Berhasil update project");
       router.push("/admin/project");
+    } catch (error) {
+      console.error(error);
+      toast.error("Terjadi kesalahan pada server.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -221,10 +243,11 @@ export default function EditProjectPage() {
           </button>
 
           <button
+            disabled={saving}
             onClick={handleUpdate}
             className="px-5 py-2 bg-[#54ACBF] text-white rounded-lg hover:bg-[#26658C]"
           >
-            Update Project
+            {saving ? "Menyimpan..." : "Update Project"}
           </button>
         </div>
       </div>

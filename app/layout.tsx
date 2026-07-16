@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "sonner";
 
 const font = Space_Grotesk({
   subsets: ["latin"],
@@ -18,12 +19,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="id"
-      className={`${font.className}`}
-      suppressHydrationWarning
-    >
-       <body suppressHydrationWarning>{children}</body>
+    <html lang="id" className={`${font.className}`} suppressHydrationWarning>
+      <body suppressHydrationWarning>
+        {children}
+        <Toaster position="top-right" richColors closeButton />
+      </body>
     </html>
   );
 }

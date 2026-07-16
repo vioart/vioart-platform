@@ -1,8 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { writeFile } from "fs/promises";
-import { unlink } from "fs/promises";
+import { rename, unlink } from "fs/promises";
 import path from "path";
-import { readFile } from "fs/promises";
+import { mkdir } from "fs/promises";
 
 export async function GET(
   req: Request,
@@ -29,7 +28,14 @@ export async function GET(
     });
 
     if (!project) {
-      return new Response("Not found", { status: 404 });
+      return Response.json(
+        {
+          error: "Project tidak ditemukan",
+        },
+        {
+          status: 404,
+        },
+      );
     }
 
     return Response.json(project);
@@ -85,10 +91,15 @@ export async function PUT(
 
       for (const img of imagesToDelete) {
         try {
+          const fileName = img.image_url.split("/").pop();
+
+          if (!fileName) continue;
+
           const filePath = path.join(
             process.cwd(),
-            "public",
-            img.image_url.replace(/^\/+/, ""),
+            "storage",
+            "projects",
+            fileName,
           );
 
           await unlink(filePath);
@@ -109,37 +120,44 @@ export async function PUT(
       is_primary: boolean;
     }[] = [];
 
+    await mkdir(path.join(process.cwd(), "storage", "projects"), {
+      recursive: true,
+    });
+
+    await mkdir(path.join(process.cwd(), "storage", "temp"), {
+      recursive: true,
+    });
+
     for (let i = 0; i < tempUrls.length; i++) {
       const tempUrl = tempUrls[i];
 
       if (!tempUrl) continue;
 
       const fileName = tempUrl.split("/").pop();
+
       if (!fileName) continue;
 
-      const oldPath = path.join(
-        process.cwd(),
-        "public",
-        tempUrl.replace(/^\/+/, ""),
-      );
+      /**
+       * storage/temp
+       */
 
-      const newPath = path.join(
-        process.cwd(),
-        "public/uploads/projects",
-        fileName,
-      );
+      const oldPath = path.join(process.cwd(), "storage", "temp", fileName);
+
+      /**
+       * storage/projects
+       */
+
+      const newPath = path.join(process.cwd(), "storage", "projects", fileName);
 
       try {
-        const buffer = await readFile(oldPath);
-        await writeFile(newPath, buffer);
-        await unlink(oldPath);
+        await rename(oldPath, newPath);
       } catch (err) {
-        console.error("Gagal pindah file:", oldPath, err);
+        console.error("Move gagal:", err);
         continue;
       }
 
       newImages.push({
-        image_url: `/uploads/projects/${fileName}`,
+        image_url: `/api/files/projects/${fileName}`,
         is_primary: primaryFlags[i] === "true",
       });
     }
@@ -271,10 +289,15 @@ export async function DELETE(
 
     for (const img of images) {
       try {
+        const fileName = img.image_url.split("/").pop();
+
+        if (!fileName) continue;
+
         const filePath = path.join(
           process.cwd(),
-          "public",
-          img.image_url.replace(/^\/+/, ""),
+          "storage",
+          "projects",
+          fileName,
         );
 
         await unlink(filePath);

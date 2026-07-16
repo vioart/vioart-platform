@@ -13,6 +13,7 @@ import { FormMultiSelector } from "@/components/ui/form/formMultiSelector";
 import { useCertificationForm } from "@/hooks/useCertificationForm";
 import { useTechAndCategory } from "@/hooks/useTechAndCategory";
 import { Category } from "@/types/category";
+import { toast } from "sonner";
 
 export default function CreateCertificationPage() {
   const form = useCertificationForm();
@@ -22,6 +23,7 @@ export default function CreateCertificationPage() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [skills, setSkills] = useState<string[]>([""]);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetch("/api/admin/category")
@@ -47,6 +49,10 @@ export default function CreateCertificationPage() {
   };
 
   const handleSubmit = async () => {
+    if (saving) return;
+
+    setSaving(true);
+
     try {
       const formData = new FormData();
 
@@ -58,14 +64,16 @@ export default function CreateCertificationPage() {
       formData.append("source_url", form.sourceUrl);
       formData.append("is_featured", String(form.isFeatured));
 
-      skills.forEach((s) => formData.append("skills[]", s));
+      skills.forEach((skill) => {
+        formData.append("skills[]", skill);
+      });
 
       techCat.selectedCategories.forEach((id) => {
         formData.append("category_ids[]", String(id));
       });
 
       image.images.forEach((img) => {
-        if (!img.file && img.preview.includes("/uploads/temp")) {
+        if (!img.file && img.preview.startsWith("/api/files/temp/")) {
           formData.append("temp_images[]", img.preview);
         }
       });
@@ -75,16 +83,27 @@ export default function CreateCertificationPage() {
         body: formData,
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
 
       if (!res.ok) {
-        alert(data.error);
-      } else {
-        alert("Berhasil tambah sertifikasi");
-        router.push("/admin/sertifikasi");
+        toast.error(
+          data?.error ?? data?.message ?? "Gagal menambahkan sertifikasi.",
+        );
+
+        return;
       }
-    } catch (err) {
-      console.error(err);
+
+      toast.success("Sertifikasi berhasil ditambahkan.");
+
+      setTimeout(() => {
+        router.push("/admin/sertifikasi");
+      }, 800);
+    } catch (error) {
+      console.error(error);
+
+      toast.error("Terjadi kesalahan pada server.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -194,9 +213,10 @@ export default function CreateCertificationPage() {
 
           <button
             onClick={handleSubmit}
-            className="px-5 py-2 bg-[#54ACBF] text-white rounded-lg hover:bg-[#26658C]"
+            disabled={saving}
+            className="px-5 py-2 bg-[#54ACBF] text-white rounded-lg hover:bg-[#26658C] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Simpan Sertifikat
+            {saving ? "Menyimpan..." : "Simpan Sertifikat"}
           </button>
         </div>
       </div>

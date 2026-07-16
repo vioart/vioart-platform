@@ -14,8 +14,8 @@ import { FormSwitch } from "@/components/ui/form/formSwitch";
 import { FormImageUpload } from "@/components/ui/form/formImageUpload";
 import { FormListField } from "@/components/ui/form/formListField";
 import { FormMultiSelector } from "@/components/ui/form/formMultiSelector";
-
 import { Category } from "@/types/category";
+import { toast } from "sonner";
 
 type CertificationResponse = {
   id: number;
@@ -58,46 +58,83 @@ export default function EditProjectPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [skills, setSkills] = useState<string[]>([""]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetch("/api/admin/category")
-      .then((res) => res.json())
-      .then(setCategories);
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch("/api/admin/category");
+
+        if (!res.ok) {
+          throw new Error();
+        }
+
+        setCategories(await res.json());
+      } catch (error) {
+        console.error(error);
+        toast.error("Gagal memuat kategori.");
+      }
+    };
+
+    fetchCategories();
   }, []);
 
   useEffect(() => {
     if (!id) return;
 
     const fetchData = async () => {
-      const res = await fetch(`/api/admin/sertifikasi/${id}`);
-      const data: CertificationResponse = await res.json();
+      try {
+        const res = await fetch(`/api/admin/sertifikasi/${id}`);
 
-      form.setAll({
-        title: data.title,
-        slug: data.slug,
-        issuer: data.issuer || "",
-        year: data.year ?? "",
-        description: data.description || "",
-        sourceUrl: data.source_url || "",
-        isFeatured: data.is_featured,
-      });
+        if (!res.ok) {
+          const error = await res.json().catch(() => null);
 
-      setSkills(data.skills.map((s) => s.skill));
+          toast.error(
+            error?.error ??
+              error?.message ??
+              "Gagal mengambil data sertifikasi.",
+          );
 
-      techCat.setSelectedCategories(data.categories.map((c) => c.category.id));
+          return;
+        }
 
-      image.setImages(
-        data.images.map((img) => ({
-          uid: crypto.randomUUID(),
-          id: img.id,
-          file: null,
-          preview: img.image_url,
-          is_primary: false,
-          progress: 100,
-        })),
-      );
+        const data: CertificationResponse = await res.json();
 
-      setLoading(false);
+        form.setAll({
+          title: data.title,
+          slug: data.slug,
+          issuer: data.issuer || "",
+          year: data.year ?? "",
+          description: data.description || "",
+          sourceUrl: data.source_url || "",
+          isFeatured: data.is_featured,
+        });
+
+        setSkills(data.skills.map((s) => s.skill));
+
+        techCat.setSelectedCategories(
+          data.categories.map((c) => c.category.id),
+        );
+
+        image.setImages(
+          data.images.map((img) => ({
+            uid:
+              typeof crypto !== "undefined" && crypto.randomUUID
+                ? crypto.randomUUID()
+                : Math.random().toString(36).substring(2),
+            id: img.id,
+            file: null,
+            preview: img.image_url,
+            is_primary: false,
+            progress: 100,
+          })),
+        );
+      } catch (error) {
+        console.error(error);
+        toast.error("Terjadi kesalahan pada server.");
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchData();
@@ -116,40 +153,65 @@ export default function EditProjectPage() {
   };
 
   const handleUpdate = async () => {
-    const formData = new FormData();
+    if (saving) return;
 
-    formData.append("title", form.title);
-    formData.append("slug", form.slug);
-    formData.append("issuer", form.issuer);
-    formData.append("year", String(form.year));
-    formData.append("description", form.description);
-    formData.append("source_url", form.sourceUrl);
-    formData.append("is_featured", String(form.isFeatured));
+    setSaving(true);
 
-    skills.forEach((s) => formData.append("skills[]", s));
+    try {
+      const formData = new FormData();
 
-    techCat.selectedCategories.forEach((id) => {
-      formData.append("category_ids[]", String(id));
-    });
+      formData.append("title", form.title);
+      formData.append("slug", form.slug);
+      formData.append("issuer", form.issuer);
+      formData.append("year", String(form.year));
+      formData.append("description", form.description);
+      formData.append("source_url", form.sourceUrl);
+      formData.append("is_featured", String(form.isFeatured));
 
-    image.deletedIds.forEach((id) => {
-      formData.append("delete_image_ids[]", String(id));
-    });
+      skills.forEach((skill) => {
+        formData.append("skills[]", skill);
+      });
 
-    image.images.forEach((img) => {
-      if (!img.file && img.preview.includes("/uploads/temp")) {
-        formData.append("temp_images[]", img.preview);
+      techCat.selectedCategories.forEach((id) => {
+        formData.append("category_ids[]", String(id));
+      });
+
+      image.deletedIds.forEach((id) => {
+        formData.append("delete_image_ids[]", String(id));
+      });
+
+      image.images.forEach((img) => {
+        if (!img.id && img.preview.startsWith("/api/files/temp/")) {
+          formData.append("temp_images[]", img.preview);
+        }
+      });
+
+      const res = await fetch(`/api/admin/sertifikasi/${id}`, {
+        method: "PUT",
+        body: formData,
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        toast.error(
+          data?.error ?? data?.message ?? "Gagal memperbarui sertifikasi.",
+        );
+
+        return;
       }
-    });
 
-    const res = await fetch(`/api/admin/sertifikasi/${id}`, {
-      method: "PUT",
-      body: formData,
-    });
+      toast.success("Sertifikasi berhasil diperbarui.");
 
-    if (res.ok) {
-      alert("Berhasil update sertifikasi");
-      router.push("/admin/sertifikasi");
+      setTimeout(() => {
+        router.push("/admin/sertifikasi");
+      }, 800);
+    } catch (error) {
+      console.error(error);
+
+      toast.error("Terjadi kesalahan pada server.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -253,9 +315,10 @@ export default function EditProjectPage() {
 
           <button
             onClick={handleUpdate}
-            className="px-5 py-2 bg-[#54ACBF] text-white rounded-lg hover:bg-[#26658C]"
+            disabled={saving}
+            className="px-5 py-2 bg-[#54ACBF] text-white rounded-lg hover:bg-[#26658C] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Update Sertifikat
+            {saving ? "Menyimpan..." : "Update Sertifikat"}
           </button>
         </div>
       </div>

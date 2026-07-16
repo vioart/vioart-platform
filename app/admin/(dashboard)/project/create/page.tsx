@@ -12,6 +12,7 @@ import { ProjectDetail } from "@/components/admin/project/ProjectDetail";
 import { ProjectFeatures } from "@/components/admin/project/ProjectFeatures";
 import { TechSelector } from "@/components/admin/project/TechSelector";
 import { CategorySelector } from "@/components/admin/project/CategorySelector";
+import { toast } from "sonner";
 
 type Tech = {
   id: number;
@@ -32,6 +33,7 @@ export default function CreateProjectPage() {
   const techCat = useTechAndCategory();
   const [techs, setTechs] = useState<Tech[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -57,6 +59,10 @@ export default function CreateProjectPage() {
   }, [image.images]);
 
   const handleSubmit = async () => {
+    if (saving) return;
+
+    setSaving(true);
+
     try {
       const formData = new FormData();
 
@@ -68,16 +74,20 @@ export default function CreateProjectPage() {
       formData.append("problem", form.problem);
       formData.append("solution", form.solution);
 
-      feature.features.forEach((f) => formData.append("features[]", f));
-      techCat.selectedTechs.forEach((id) =>
-        formData.append("tech_ids[]", String(id)),
-      );
-      techCat.selectedCategories.forEach((id) =>
-        formData.append("category_ids[]", String(id)),
-      );
+      feature.features.forEach((f) => {
+        formData.append("features[]", f);
+      });
+
+      techCat.selectedTechs.forEach((id) => {
+        formData.append("tech_ids[]", String(id));
+      });
+
+      techCat.selectedCategories.forEach((id) => {
+        formData.append("category_ids[]", String(id));
+      });
 
       image.images.forEach((img) => {
-        if (!img.file && img.preview.includes("/uploads/temp")) {
+        if (!img.file && img.preview.startsWith("/api/files/temp/")) {
           formData.append("temp_images[]", img.preview);
           formData.append("is_primary[]", String(img.is_primary));
         }
@@ -88,16 +98,28 @@ export default function CreateProjectPage() {
         body: formData,
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
 
       if (!res.ok) {
-        alert(data.error);
-      } else {
-        alert("Berhasil tambah project");
-        router.push("/admin/project");
+        toast.error(
+          data?.error ??
+            data?.message ??
+            "Gagal menambahkan project. Silakan coba lagi.",
+        );
+        return;
       }
-    } catch (err) {
-      console.error(err);
+
+      toast.success("Project berhasil ditambahkan.");
+
+      setTimeout(() => {
+        router.push("/admin/project");
+      }, 800);
+    } catch (error) {
+      console.error(error);
+
+      toast.error("Terjadi kesalahan pada server.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -158,9 +180,10 @@ export default function CreateProjectPage() {
 
           <button
             onClick={handleSubmit}
-            className="px-5 py-2 bg-[#54ACBF] text-white rounded-lg hover:bg-[#26658C]"
+            disabled={saving}
+            className="px-5 py-2 bg-[#54ACBF] text-white rounded-lg hover:bg-[#26658C] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Simpan Project
+            {saving ? "Menyimpan..." : "Simpan Project"}
           </button>
         </div>
       </div>

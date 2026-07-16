@@ -1,9 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { writeFile } from "fs/promises";
-import { unlink } from "fs/promises";
 import path from "path";
-import { readFile } from "fs/promises";
-import fs from "fs";
+import { mkdir, rename, unlink } from "fs/promises";
 
 export async function GET(
   req: Request,
@@ -29,7 +26,14 @@ export async function GET(
     });
 
     if (!certification) {
-      return Response.json({ error: "Not found" }, { status: 404 });
+      return Response.json(
+        {
+          error: "Sertifikasi tidak ditemukan",
+        },
+        {
+          status: 404,
+        },
+      );
     }
 
     return Response.json(certification);
@@ -54,7 +58,14 @@ export async function PUT(
     const certId = Number(id);
 
     if (isNaN(certId)) {
-      return Response.json({ error: "ID tidak valid" }, { status: 400 });
+      return Response.json(
+        {
+          error: "ID tidak valid",
+        },
+        {
+          status: 400,
+        },
+      );
     }
 
     const formData = await req.formData();
@@ -81,10 +92,14 @@ export async function PUT(
 
     const tempUrls = formData.getAll("temp_images[]") as string[];
 
+    /* ==========================================
+       VALIDATION
+    ========================================== */
+
     if (!title || !slug) {
       return Response.json(
         {
-          error: "Title dan slug wajib diisi",
+          error: "Judul dan slug wajib diisi.",
         },
         {
           status: 400,
@@ -95,7 +110,7 @@ export async function PUT(
     if (category_ids.length === 0) {
       return Response.json(
         {
-          error: "Minimal pilih satu kategori",
+          error: "Minimal pilih satu kategori.",
         },
         {
           status: 400,
@@ -112,7 +127,7 @@ export async function PUT(
     if (!certification) {
       return Response.json(
         {
-          error: "Data sertifikasi tidak ditemukan",
+          error: "Data sertifikasi tidak ditemukan.",
         },
         {
           status: 404,
@@ -132,7 +147,7 @@ export async function PUT(
     if (existingSlug) {
       return Response.json(
         {
-          error: "Slug sudah digunakan",
+          error: "Slug sudah digunakan.",
         },
         {
           status: 400,
@@ -154,7 +169,7 @@ export async function PUT(
     if (existingCategories.length !== category_ids.length) {
       return Response.json(
         {
-          error: "Kategori tidak valid",
+          error: "Kategori tidak valid.",
         },
         {
           status: 400,
@@ -162,13 +177,21 @@ export async function PUT(
       );
     }
 
-    const uploadDir = path.join(process.cwd(), "public/uploads/certifications");
+    /* ==========================================
+       PREPARE STORAGE
+    ========================================== */
 
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, {
-        recursive: true,
-      });
-    }
+    await mkdir(path.join(process.cwd(), "storage", "certifications"), {
+      recursive: true,
+    });
+
+    await mkdir(path.join(process.cwd(), "storage", "temp"), {
+      recursive: true,
+    });
+
+    /* ==========================================
+       DELETE OLD IMAGE
+    ========================================== */
 
     if (deleteImageIds.length > 0) {
       const images = await prisma.certificationImage.findMany({
@@ -181,15 +204,20 @@ export async function PUT(
 
       for (const img of images) {
         try {
+          const fileName = img.image_url.split("/").pop();
+
+          if (!fileName) continue;
+
           const filePath = path.join(
             process.cwd(),
-            "public",
-            img.image_url.replace(/^\/+/, ""),
+            "storage",
+            "certifications",
+            fileName,
           );
 
           await unlink(filePath);
-        } catch {
-          console.warn("Gagal menghapus file:", img.image_url);
+        } catch (err) {
+          console.warn("Gagal hapus file:", img.image_url);
         }
       }
 
@@ -202,6 +230,10 @@ export async function PUT(
       });
     }
 
+    /* ==========================================
+       MOVE TEMP IMAGE
+    ========================================== */
+
     const newImages: {
       image_url: string;
     }[] = [];
@@ -213,36 +245,42 @@ export async function PUT(
 
       if (!fileName) continue;
 
-      const oldPath = path.join(
-        process.cwd(),
-        "public",
-        tempUrl.replace(/^\/+/, ""),
-      );
+      /**
+       * storage/temp
+       */
+      const oldPath = path.join(process.cwd(), "storage", "temp", fileName);
 
+      /**
+       * storage/certifications
+       */
       const newPath = path.join(
         process.cwd(),
-        "public/uploads/certifications",
+        "storage",
+        "certifications",
         fileName,
       );
 
       try {
-        const buffer = await readFile(oldPath);
-
-        await writeFile(newPath, buffer);
-
-        await unlink(oldPath);
+        await rename(oldPath, newPath);
       } catch (err) {
         console.error("Gagal memindahkan gambar:", err);
-
         continue;
       }
 
       newImages.push({
-        image_url: `/uploads/certifications/${fileName}`,
+        image_url: `/api/files/certifications/${fileName}`,
       });
     }
 
-    const cleanSkills = skills.filter((s) => s.trim() !== "");
+    /* ==========================================
+       CLEAN DATA
+    ========================================== */
+
+    const cleanSkills = skills.filter((skill) => skill.trim() !== "");
+
+    /* ==========================================
+       UPDATE CERTIFICATION
+    ========================================== */
 
     const updated = await prisma.certification.update({
       where: {
@@ -300,7 +338,7 @@ export async function PUT(
 
     return Response.json(
       {
-        error: "Terjadi kesalahan server",
+        error: "Terjadi kesalahan server.",
       },
       {
         status: 500,
@@ -344,10 +382,15 @@ export async function DELETE(
 
     for (const img of images) {
       try {
+        const fileName = img.image_url.split("/").pop();
+
+        if (!fileName) continue;
+
         const filePath = path.join(
           process.cwd(),
-          "public",
-          img.image_url.replace(/^\/+/, ""),
+          "storage",
+          "certifications",
+          fileName,
         );
 
         await unlink(filePath);
